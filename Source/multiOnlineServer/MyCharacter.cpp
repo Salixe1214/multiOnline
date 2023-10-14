@@ -10,6 +10,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "Blueprint/UserWidget.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -18,6 +19,9 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 AMyCharacter::AMyCharacter()
 {
+	// Pause Menu Initially Closed
+	isPauseMenuOpen = false;
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -86,6 +90,9 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMyCharacter::Look);
+
+		// Pausing
+		EnhancedInputComponent->BindAction(PauseAction, ETriggerEvent::Started, this, &AMyCharacter::Pause);
 	}
 	else
 	{
@@ -126,6 +133,44 @@ void AMyCharacter::Look(const FInputActionValue& Value)
 		// add yaw and pitch input to controller
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
+	}
+}
+
+void AMyCharacter::Pause(const FInputActionValue& Value)
+{
+	if (isPauseMenuOpen == false)
+	{
+		isPauseMenuOpen = true;
+
+		widgetPauseMenuInstance = CreateWidget<UUserWidget>(GetWorld(), widgetPauseMenu);
+		widgetPauseMenuInstance->AddToViewport();
+		
+		MyPlayerController = Cast<APlayerController>(GetController());
+
+		if (MyPlayerController)
+		{
+			MyPlayerController->bShowMouseCursor = true;
+			MyPlayerController->bEnableClickEvents = true;
+			MyPlayerController->bEnableMouseOverEvents = true;
+			MyPlayerController->SetInputMode((FInputModeGameAndUI()));
+		}
+
+	}
+	else 
+	{
+		isPauseMenuOpen = false;
+
+		widgetPauseMenuInstance->RemoveFromParent();
+
+		MyPlayerController = Cast<APlayerController>(GetController());
+
+		if (MyPlayerController)
+		{
+			MyPlayerController->bShowMouseCursor = false;
+			MyPlayerController->bEnableClickEvents = false;
+			MyPlayerController->bEnableMouseOverEvents = false;
+			MyPlayerController->SetInputMode((FInputModeGameOnly()));
+		}
 	}
 }
 
